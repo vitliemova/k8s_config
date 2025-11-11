@@ -7,6 +7,7 @@ SCRIPT_NAME="${SCRIPT_FULLNAME%%.*}"
 export SCRIPT_LOGDIR="${SCRIPT_DIR}"
 export SCRIPT_LOGFILE="${SCRIPT_LOGDIR}/${SCRIPT_NAME}.log"
 
+export HOME =/home/desi
 # Load environment variables from .env | tee -a "${SCRIPT_LOGFILE}"
 if [ -f "/home/desi/.env" ]; then
   echo "[INFO] Loading environment variables from .env" | tee -a "${SCRIPT_LOGFILE}"  
@@ -26,14 +27,21 @@ set -e
 echo "Step1  Installing k3s agent..." | tee -a "${SCRIPT_LOGFILE}"
 
 # Update system
-sudo apt-get update -y && sudo apt-get upgrade -y | tee -a "${SCRIPT_LOGFILE}"
+apt-get update -y && sudo apt-get upgrade -y | tee -a "${SCRIPT_LOGFILE}"
 
 # Disable swap | tee -a "${SCRIPT_LOGFILE}"
-sudo swapoff -a | tee -a "${SCRIPT_LOGFILE}"
-sudo sed -i '/ swap / s/^/#/' /etc/fstab | tee -a "${SCRIPT_LOGFILE}"
+swapoff -a | tee -a "${SCRIPT_LOGFILE}"
+sed -i '/ swap / s/^/#/' /etc/fstab | tee -a "${SCRIPT_LOGFILE}"
 
 # Install prerequisites | tee -a "${SCRIPT_LOGFILE}"
-sudo apt-get install -y curl apt-transport-https ca-certificates gnupg lsb-release | tee -a "${SCRIPT_LOGFILE}"
+apt-get install -y curl apt-transport-https ca-certificates gnupg lsb-release | tee -a "${SCRIPT_LOGFILE}"
+
+# --- NEW: Install Docker ---
+echo "[INFO] Installing Docker..." | tee -a "${SCRIPT_LOGFILE}"
+apt-get install -y docker.io | tee -a "${SCRIPT_LOGFILE}"
+systemctl enable --now docker | tee -a "${SCRIPT_LOGFILE}"
+usermod -aG docker $USER | tee -a "${SCRIPT_LOGFILE}"
+usermod -aG docker desi | tee -a "${SCRIPT_LOGFILE}"
 
 # Install k3s agent (join cluster) | tee -a "${SCRIPT_LOGFILE}"
 echo "[INFO] Joining the Kubernetes cluster as a worker node..." | tee -a "${SCRIPT_LOGFILE}"
@@ -45,14 +53,11 @@ echo "[INFO] Worker node joined the cluster."
 echo "[INFO] Setting up kubeconfig for kubectl..." | tee -a "${SCRIPT_LOGFILE}"
 mkdir -p $HOME/.kube
 # Copy kubeconfig from server via scp (requires SSH access)
-scp desi@${SERVER_IP}:/etc/rancher/k3s/k3s.yaml $HOME/.kube/config
-
-# Replace localhost with server IP
-sed -i "s/127.0.0.1/${SERVER_IP}/" $HOME/.kube/config
+scp root@${SERVER_IP}:/etc/rancher/k3s/k3s.yaml $HOME/.kube/config
 
 # Fix ownership and permissions
-chown $(id -u):$(id -g) $HOME/.kube/config
-chmod 600 $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+sudo chmod 600 $HOME/.kube/config
 
 echo "[INFO] kubeconfig configured. Testing cluster access..." | tee -a "${SCRIPT_LOGFILE}"
 kubectl get nodes | tee -a "${SCRIPT_LOGFILE}"
