@@ -21,8 +21,9 @@ jobs:
 
       - name: Copy server script to control plane
         run: |
-          scp -o StrictHostKeyChecking=no ./scripts/server-install.sh desi@${{ secrets.SERVER_IP }}:/home/desi/server-install.sh
+          mkdir /root/install
+          scp -o StrictHostKeyChecking=no ./scripts/install_k8s.sh root@${{ secrets.SERVER_IP }}:/root/install/install_k8s.sh
 
       - name: Run server script remotely
         run: |
-          ssh -o StrictHostKeyChecking=no desi@${{ secrets.SERVER_IP }} "bash /home/desi/server-install.sh"
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} "bash /root/install/install_k8s.sh"
