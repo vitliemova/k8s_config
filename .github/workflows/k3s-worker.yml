@@ -18,8 +18,10 @@ jobs:
 
       - name: Copy worker script to node
         run: |
-          scp -o StrictHostKeyChecking=no ./scripts/worker-install.sh desi@${{ secrets.WORKER_IP }}:/home/desi/worker-install.sh
+          mkdir install
+          scp -o StrictHostKeyChecking=no ./scripts/worker-install.sh root@${{ secrets.WORKER_IP }}:/root/install/add_worker_node.sh
 
       - name: Run worker script remotely
         run: |
-          ssh -o StrictHostKeyChecking=no desi@${{ secrets.WORKER_IP }} "bash /home/desi/worker-install.sh"
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.WORKER_IP }} "bash /root/install/add_worker_node.sh"
+
