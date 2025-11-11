@@ -1,10 +1,10 @@
 name: Deploy K3s Control Plane
 
 on:
-  workflow_dispatch:   # allows manual trigger from GitHub UI
+  workflow_dispatch:   # manual trigger
   push:
     branches:
-      - main           # run automatically when you push to main
+      - main           # auto-run on push to main
 
 jobs:
   deploy-server:
@@ -19,11 +19,18 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      - name: Prepare install directory on server
+        run: |
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} "mkdir -p /root/install"
+
       - name: Copy server script to control plane
         run: |
-          mkdir /root/install
           scp -o StrictHostKeyChecking=no ./scripts/install_k8s.sh root@${{ secrets.SERVER_IP }}:/root/install/install_k8s.sh
 
       - name: Run server script remotely
         run: |
           ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} "bash /root/install/install_k8s.sh"
+
+      - name: Show join token
+        run: |
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} "sudo cat /var/lib/rancher/k3s/server/node-token"
