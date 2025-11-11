@@ -1,0 +1,26 @@
+name: Deploy K3s Control Plane
+
+on:
+  workflow_dispatch:
+  #push:
+    #branches:
+     # - main
+
+jobs:
+  deploy-server:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Prepare install directory
+        run: ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} "mkdir -p /root/install"
+      - name: Copy server script
+        run: scp -o StrictHostKeyChecking=no ./scripts/install_k8s.sh root@${{ secrets.SERVER_IP }}:/root/install/install_k8s.sh
+      - name: Run server script
+        run: ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} "bash /root/install/install_k8s.sh"
+      - name: Show join token
+        run: ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} "sudo cat /var/lib/rancher/k3s/server/node-token"

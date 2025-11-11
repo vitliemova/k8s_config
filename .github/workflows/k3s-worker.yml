@@ -1,0 +1,33 @@
+name: Deploy K3s Worker
+
+on:
+  workflow_run:
+    workflows: ["Deploy K3s Control Plane"]   # chain to server workflow
+    types:
+      - completed
+
+jobs:
+  deploy-worker:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Get Server IP
+        run: |
+          SERVER_IP=$(ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} "hostname -I | tr ' ' '\n' | grep '^192\.168\.' | head -n1")
+          echo "SERVER_IP=$SERVER_IP" >> $GITHUB_ENV
+      - name: Get K3S Token
+        run: |
+          NODE_TOKEN=$(ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} "sudo cat /var/lib/rancher/k3s/server/node-token")
+          echo "NODE_TOKEN=$NODE_TOKEN" >> $GITHUB_ENV
+      - name: Copy worker script
+        run: |
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.WORKER_IP }} "mkdir -p /root/install"
+          scp -o StrictHostKeyChecking=no ./scripts/add_worker_node.sh root@${{ secrets.WORKER_IP }}:/root/install/add_worker_node.sh
+      - name: Run worker script remotely
+        run: |
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.WORKER_IP }} "SERVER_IP=$SERVER_IP NODE_TOKEN=$NODE_TOKEN bash /root/install/add_worker_node.sh"
