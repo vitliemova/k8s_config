@@ -1,19 +1,58 @@
 #!/bin/bash
+SCRIPT_PATH="$(readlink -nf $0)"
+export SCRIPT_DIR="$(dirname $SCRIPT_PATH)"
+SCRIPT_FULLNAME="$(basename $SCRIPT_PATH)"
+SCRIPT_NAME="${SCRIPT_FULLNAME%%.*}"
+#--- log files
+export SCRIPT_LOGDIR="${SCRIPT_DIR}"
+export SCRIPT_LOGFILE="${SCRIPT_LOGDIR}/${SCRIPT_NAME}.log"
+
+# Load environment variables from .env | tee -a "${SCRIPT_LOGFILE}"
+if [ -f "/home/desi/.env" ]; then
+  echo "[INFO] Loading environment variables from .env" | tee -a "${SCRIPT_LOGFILE}"  
+  set -a
+  source /home/desi/.env
+  set +a
+  echo $K3S_URL | tee -a "${SCRIPT_LOGFILE}"  
+  echo $K3S_TOKEN | tee -a "${SCRIPT_LOGFILE}"
+  SERVER_IP=$(echo $K3S_URL | sed 's|https://||;s|:6443||')
+  NODE_TOKEN=$K3S_TOKEN
+else
+  echo "[WARN] .env file not found, please export K3S_URL and K3S_TOKEN manually" | tee -a "${SCRIPT_LOGFILE}"
+fi
+
 set -e
 
-echo "[INFO] Installing k3s agent..."
+echo "Step1  Installing k3s agent..." | tee -a "${SCRIPT_LOGFILE}"
 
 # Update system
-sudo apt-get update -y && sudo apt-get upgrade -y
+sudo apt-get update -y && sudo apt-get upgrade -y | tee -a "${SCRIPT_LOGFILE}"
 
-# Disable swap
-sudo swapoff -a
-sudo sed -i '/ swap / s/^/#/' /etc/fstab
+# Disable swap | tee -a "${SCRIPT_LOGFILE}"
+sudo swapoff -a | tee -a "${SCRIPT_LOGFILE}"
+sudo sed -i '/ swap / s/^/#/' /etc/fstab | tee -a "${SCRIPT_LOGFILE}"
 
-# Install prerequisites
-sudo apt-get install -y curl apt-transport-https ca-certificates gnupg lsb-release
+# Install prerequisites | tee -a "${SCRIPT_LOGFILE}"
+sudo apt-get install -y curl apt-transport-https ca-certificates gnupg lsb-release | tee -a "${SCRIPT_LOGFILE}"
 
-# Install k3s agent (join cluster)
-curl -sfL https://get.k3s.io | K3S_URL=https://<SERVER_IP>:6443 K3S_TOKEN=<NODE_TOKEN> sh -
+# Install k3s agent (join cluster) | tee -a "${SCRIPT_LOGFILE}"
+echo "[INFO] Joining the Kubernetes cluster as a worker node..." | tee -a "${SCRIPT_LOGFILE}"
+curl -sfL https://get.k3s.io | K3S_URL=https://${SERVER_IP}:6443 K3S_TOKEN=${NODE_TOKEN} sh -
 
 echo "[INFO] Worker node joined the cluster."
+
+# --- NEW: Configure kubectl on this node ---
+echo "[INFO] Setting up kubeconfig for kubectl..." | tee -a "${SCRIPT_LOGFILE}"
+mkdir -p $HOME/.kube
+# Copy kubeconfig from server via scp (requires SSH access)
+scp desi@${SERVER_IP}:/etc/rancher/k3s/k3s.yaml $HOME/.kube/config
+
+# Replace localhost with server IP
+sed -i "s/127.0.0.1/${SERVER_IP}/" $HOME/.kube/config
+
+# Fix ownership and permissions
+chown $(id -u):$(id -g) $HOME/.kube/config
+chmod 600 $HOME/.kube/config
+
+echo "[INFO] kubeconfig configured. Testing cluster access..." | tee -a "${SCRIPT_LOGFILE}"
+kubectl get nodes | tee -a "${SCRIPT_LOGFILE}"
