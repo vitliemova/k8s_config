@@ -8,19 +8,22 @@ export SCRIPT_LOGDIR="${SCRIPT_DIR}"
 export SCRIPT_LOGFILE="${SCRIPT_LOGDIR}/${SCRIPT_NAME}.log"
 
 export HOME =/home/desi
-# Load environment variables from .env | tee -a "${SCRIPT_LOGFILE}"
-if [ -f "/home/desi/.env" ]; then
-  echo "[INFO] Loading environment variables from .env" | tee -a "${SCRIPT_LOGFILE}"  
-  set -a
-  source /home/desi/.env
-  set +a
-  echo $K3S_URL | tee -a "${SCRIPT_LOGFILE}"  
-  echo $K3S_TOKEN | tee -a "${SCRIPT_LOGFILE}"
-  SERVER_IP=$(echo $K3S_URL | sed 's|https://||;s|:6443||')
-  NODE_TOKEN=$K3S_TOKEN
-else
-  echo "[WARN] .env file not found, please export K3S_URL and K3S_TOKEN manually" | tee -a "${SCRIPT_LOGFILE}"
-fi
+# # Load environment variables from .env | tee -a "${SCRIPT_LOGFILE}"
+# if [ -f "/home/desi/.env" ]; then
+#   echo "[INFO] Loading environment variables from .env" | tee -a "${SCRIPT_LOGFILE}"  
+#   set -a
+#   source /home/desi/.env
+#   set +a
+#   echo $K3S_URL | tee -a "${SCRIPT_LOGFILE}"  
+#   echo $K3S_TOKEN | tee -a "${SCRIPT_LOGFILE}"
+#   SERVER_IP=$(echo $K3S_URL | sed 's|https://||;s|:6443||')
+#   #NODE_TOKEN=$K3S_TOKEN
+# else
+#   echo "[WARN] .env file not found, please export K3S_URL and K3S_TOKEN manually" | tee -a "${SCRIPT_LOGFILE}"
+# fi
+# SERVER_IP=$(ssh desi@my-control-plane "hostname -I | tr ' ' '\n' | grep '^192\.168\.' | head -n1")
+
+NODE_TOKEN=$(ssh root@${SERVER_IP} "sudo cat /var/lib/rancher/k3s/server/node-token")
 
 set -e
 
