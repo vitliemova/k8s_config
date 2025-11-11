@@ -9,7 +9,7 @@ SCRIPT_NAME="${SCRIPT_FULLNAME%%.*}"
 export SCRIPT_LOGDIR="${SCRIPT_DIR}"
 export SCRIPT_LOGFILE="${SCRIPT_LOGDIR}/${SCRIPT_NAME}.log"
 
-export HOME =/home/desi
+export HOME=/home/desi
 
 set -e
 
@@ -37,26 +37,26 @@ echo "e. [INFO] Installing k3s..." | tee -a "${SCRIPT_LOGFILE}"
 curl -sfL https://get.k3s.io | sh - | tee -a "${SCRIPT_LOGFILE}"
 
 echo "[INFO] Waiting for k3s service to initialize..." | tee -a "${SCRIPT_LOGFILE}"
-sleep 20 
+sleep 20
 
 echo "# Step 2 Setup kubectl (k3s bundles kubectl already)" | tee -a "${SCRIPT_LOGFILE}"
 mkdir -p $HOME/.kube | tee -a "${SCRIPT_LOGFILE}"
-sudo cp /etc/rancher/k3s/k3s.yaml $HOME/.kube/config | tee -a "${SCRIPT_LOGFILE}"
-sudo chown $(id -u):$(id -g) $HOME/.kube/config | tee -a "${SCRIPT_LOGFILE}"
-sudo chmod 644 /etc/rancher/k3s/k3s.yaml | tee -a "${SCRIPT_LOGFILE}"
+cp /etc/rancher/k3s/k3s.yaml $HOME/.kube/config | tee -a "${SCRIPT_LOGFILE}"
+chown $(id -u):$(id -g) $HOME/.kube/config | tee -a "${SCRIPT_LOGFILE}"
+chmod 644 /etc/rancher/k3s/k3s.yaml | tee -a "${SCRIPT_LOGFILE}"
 
 # Replace localhost with VM IP in kubeconfig | tee -a "${SCRIPT_LOGFILE}"
 VM_IP=$(hostname -I | awk '{print $1}')
 echo "2. a : VM IP: $VM_IP" | tee -a "${SCRIPT_LOGFILE}"
-sed -i "s/127.0.0.1/$VM_IP/" $HOME/.kube/config 
-sudo sed -i "s/127.0.0.1/$VM_IP/" /etc/rancher/k3s/k3s.yaml 
+sed -i "s/127.0.0.1/$VM_IP/" $HOME/.kube/config
+sed -i "s/127.0.0.1/$VM_IP/" /etc/rancher/k3s/k3s.yaml
 
-# Step 3 Verify installation 
+# Step 3 Verify installation
 echo " Step 3 Kubernetes cluster status:" | tee -a "${SCRIPT_LOGFILE}"
 kubectl get nodes | tee -a "${SCRIPT_LOGFILE}"
 
 echo "Step 4  Server node installed. Use the token below to join agents:" | tee -a "${SCRIPT_LOGFILE}"
-sudo cat /var/lib/rancher/k3s/server/node-token | tee -a "${SCRIPT_LOGFILE}"
+cat /var/lib/rancher/k3s/server/node-token | tee -a "${SCRIPT_LOGFILE}"
 
 # # Step 5 Install Helm
 # echo "Step 5 Installing Helm..." | tee -a "${SCRIPT_LOGFILE}"

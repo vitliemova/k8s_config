@@ -56,8 +56,8 @@ mkdir -p $HOME/.kube
 scp root@${SERVER_IP}:/etc/rancher/k3s/k3s.yaml $HOME/.kube/config
 
 # Fix ownership and permissions
-sudo chown $(id -u):$(id -g) $HOME/.kube/config
-sudo chmod 600 $HOME/.kube/config
+chown $(id -u):$(id -g) $HOME/.kube/config
+chmod 600 $HOME/.kube/config
 
 echo "[INFO] kubeconfig configured. Testing cluster access..." | tee -a "${SCRIPT_LOGFILE}"
 kubectl get nodes | tee -a "${SCRIPT_LOGFILE}"
